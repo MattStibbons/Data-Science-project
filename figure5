@@ -1,1 +1,235 @@
 
+# Figure 5 replication
+
+
+import pandas as pd
+import numpy as np
+import statsmodels.formula.api as smf
+import matplotlib.pyplot as plt
+
+
+# 1. Load data
+df = pd.read_stata("bll_processed_dataset.dta")
+print("Shape:", df.shape)
+print("\nColumns:")
+print(df.columns.tolist())
+
+# Basic checks
+
+print("\nYears:", sorted(df["year"].dropna().unique().tolist()))
+print("\nRace categories:", sorted(df["race"].dropna().unique().tolist()))
+
+
+controls = [
+    "unemp_rate",
+    "median_income",
+    "percent_non_white",
+    "lead_emitted",
+    "ap"
+]
+
+# Keep only rows needed for the model
+needed_cols = [
+    "ihs_bll",
+    "year",
+    "race",
+    "county_id",
+    "StateFIPS",
+    "weight",
+    "pre_2007"
+] + controls
+
+df_model = df[needed_cols].copy()
+
+# Drop missing observations
+df_model = df_model.dropna()
+
+print("\nModel sample shape:", df_model.shape)
+
+
+# 4. Average DID regression
+
+formula_avg = (
+    "ihs_bll ~ "
+    "C(pre_2007, Treatment(reference=0)) * C(race, Treatment(reference=0))"
+    " + " + " + ".join(controls) +
+    " + C(county_id)"
+    " + C(StateFIPS):C(year)"
+)
+
+avg_model = smf.wls(
+    formula=formula_avg,
+    data=df_model,
+    weights=df_model["weight"]
+).fit(
+    cov_type="cluster",
+    cov_kwds={"groups": df_model["county_id"]}
+)
+
+print("\n================ AVERAGE DID MODEL ================\n")
+print(avg_model.summary())
+
+# Extract average post effect relative to 2007-2015
+
+race_term = "C(pre_2007, Treatment(reference=0))[T.1]:C(race, Treatment(reference=0))[T.2]"
+border_term = "C(pre_2007, Treatment(reference=0))[T.1]:C(race, Treatment(reference=0))[T.1]"
+
+nascar_estimate = avg_model.params[race_term]
+nascar_se = avg_model.bse[race_term]
+nascar_p = avg_model.pvalues[race_term]
+
+border_estimate = avg_model.params[border_term]
+border_se = avg_model.bse[border_term]
+border_p = avg_model.pvalues[border_term]
+
+def significance_stars(p):
+    if p <= 0.01:
+        return "***"
+    elif p <= 0.05:
+        return "**"
+    elif p <= 0.10:
+        return "*"
+    else:
+        return ""
+
+nascar_stars = significance_stars(nascar_p)
+border_stars = significance_stars(border_p)
+
+print("\nAverage effect, race counties:", round(nascar_estimate, 4), nascar_stars)
+print("Average effect, border counties:", round(border_estimate, 4), border_stars)
+#5. Event-study regression
+
+formula_event = (
+    "ihs_bll ~ "
+    "C(year, Treatment(reference=2007)) * C(race, Treatment(reference=0))"
+    " + " + " + ".join(controls) +
+    " + C(county_id)"
+    " + C(StateFIPS):C(year)"
+)
+
+event_model = smf.wls(
+    formula=formula_event,
+    data=df_model,
+    weights=df_model["weight"]
+).fit(
+    cov_type="cluster",
+    cov_kwds={"groups": df_model["county_id"]}
+)
+
+print("\n================ EVENT STUDY MODEL ================\n")
+print(event_model.summary())
+
+#6. Build coefficient table for plotting
+
+plot_years = list(range(2005, 2016))
+
+rows = []
+
+for yr in plot_years:
+    if yr == 2007:
+        # base year
+        race_coef = 0.0
+        race_se = 0.0
+        border_coef = 0.0
+        border_se = 0.0
+    else:
+        race_key = f"C(year, Treatment(reference=2007))[T.{yr}]:C(race, Treatment(reference=0))[T.2]"
+        border_key = f"C(year, Treatment(reference=2007))[T.{yr}]:C(race, Treatment(reference=0))[T.1]"
+
+        race_coef = event_model.params.get(race_key, np.nan)
+        race_se = event_model.bse.get(race_key, np.nan)
+
+        border_coef = event_model.params.get(border_key, np.nan)
+        border_se = event_model.bse.get(border_key, np.nan)
+
+    rows.append({
+        "year": yr,
+        "race_coef": race_coef,
+        "race_low": race_coef - 1.96 * race_se if pd.notnull(race_se) else np.nan,
+        "race_high": race_coef + 1.96 * race_se if pd.notnull(race_se) else np.nan,
+        "border_coef": border_coef,
+        "border_low": border_coef - 1.96 * border_se if pd.notnull(border_se) else np.nan,
+        "border_high": border_coef + 1.96 * border_se if pd.notnull(border_se) else np.nan
+    })
+
+coef_df = pd.DataFrame(rows)
+print("\nCoefficient table for Figure 5:")
+print(coef_df)
+
+
+# 7. Plot Figure 5
+
+fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+
+# Panel 1: race counties
+ax = axes[0]
+ax.fill_between(
+    coef_df["year"],
+    coef_df["race_low"],
+    coef_df["race_high"],
+    alpha=0.2
+)
+ax.plot(coef_df["year"], coef_df["race_coef"], marker="o")
+ax.axhline(0, linestyle="--", linewidth=1)
+ax.axvline(2007, linestyle="--", linewidth=1)
+ax.hlines(
+    y=nascar_estimate,
+    xmin=2005,
+    xmax=2007,
+    linestyles=":",
+    linewidth=1.5
+)
+ax.set_title("Race counties")
+ax.set_ylabel("Effect on asinh(EBLL)")
+ax.annotate(
+    f"Average effect: {nascar_estimate:.2f}{nascar_stars}",
+    xy=(2005.2, nascar_estimate),
+    xytext=(2005.2, nascar_estimate + 0.05),
+    arrowprops=dict(arrowstyle="->")
+)
+ax.annotate(
+    "First majority unleaded year",
+    xy=(2007, 0),
+    xytext=(2007.2, max(coef_df["race_high"].dropna()) if coef_df["race_high"].notna().any() else 0.1),
+    arrowprops=dict(arrowstyle="->")
+)
+
+# Panel 2: border counties
+ax = axes[1]
+ax.fill_between(
+    coef_df["year"],
+    coef_df["border_low"],
+    coef_df["border_high"],
+    alpha=0.2
+)
+ax.plot(coef_df["year"], coef_df["border_coef"], marker="o")
+ax.axhline(0, linestyle="--", linewidth=1)
+ax.axvline(2007, linestyle="--", linewidth=1)
+ax.hlines(
+    y=border_estimate,
+    xmin=2005,
+    xmax=2007,
+    linestyles=":",
+    linewidth=1.5
+)
+ax.set_title("Border counties")
+ax.set_ylabel("Effect on asinh(EBLL)")
+ax.set_xlabel("Year")
+ax.annotate(
+    f"Average effect: {border_estimate:.2f}{border_stars}",
+    xy=(2005.2, border_estimate),
+    xytext=(2005.2, border_estimate + 0.05),
+    arrowprops=dict(arrowstyle="->")
+)
+
+plt.suptitle("Effect of a race on asinh(EBLL)")
+plt.tight_layout()
+plt.savefig("figure_5_bll_event_study_python.png", dpi=300, bbox_inches="tight")
+plt.show()
+
+#  8. Optional: save coefficient table
+
+coef_df.to_csv("figure_5_bll_event_study_coefficients.csv", index=False)
+
+print("\nSaved:")
+print("- figure_5_bll_event_study_python.png")
