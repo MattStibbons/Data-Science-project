@@ -2,26 +2,18 @@
 library(readr)
 library(dplyr)
 library(ggplot2)
+library(purrr)
 
-# 2. IMPORT DATA 
+# 2. DEFINE YEARS (Have data downloaded since 2000 but RHV starts in 2012)
+years <- 2012:2025
 
-daily_LEAD_2016 <- read_csv("raw data/daily_LEAD_2016.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2017 <- read_csv("raw data/daily_LEAD_2017.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2018 <- read_csv("raw data/daily_LEAD_2018.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2019 <- read_csv("raw data/daily_LEAD_2019.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2020 <- read_csv("raw data/daily_LEAD_2020.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2021 <- read_csv("raw data/daily_LEAD_2021.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2022 <- read_csv("raw data/daily_LEAD_2022.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2023 <- read_csv("raw data/daily_LEAD_2023.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2024 <- read_csv("raw data/daily_LEAD_2024.csv", col_types = cols(`Method Code` = col_character()))
-daily_LEAD_2025 <- read_csv("raw data/daily_LEAD_2025.csv", col_types = cols(`Method Code` = col_character()))
-
-# 3. COMBINE ALL YEARS
-all_data <- bind_rows(
-  daily_LEAD_2016, daily_LEAD_2017, daily_LEAD_2018, daily_LEAD_2019, 
-  daily_LEAD_2020, daily_LEAD_2021, daily_LEAD_2022, daily_LEAD_2023, 
-  daily_LEAD_2024, daily_LEAD_2025
-)
+# 3. IMPORT & COMBINE DATA
+all_data <- map_dfr(years, function(y) {
+  read_csv(
+    paste0("raw data/daily_LEAD_", y, ".csv"),
+    col_types = cols(`Method Code` = col_character())
+  )
+})
 
 # 4. FILTERING & DATA CLEANING
 filtered_data <- all_data %>%
@@ -35,10 +27,10 @@ filtered_data %>%
   group_by(`Local Site Name`, month) %>%
   summarise(mean_value = mean(`Arithmetic Mean`, na.rm = TRUE), .groups = "drop") %>%
   ggplot(aes(x = as.Date(paste0(month, "-01")), y = mean_value, color = `Local Site Name`)) +
-  geom_line() +
+  geom_line(alpha = 0.7) +
   scale_y_log10() +
   labs(
-    title = "Monthly Log Arithmetic Mean (Airport Sites)",
+    title = "Monthly Log Arithmetic Mean (Airport Sites, 2000–2025)",
     x = "Month",
     y = "Arithmetic Mean (log scale)"
   ) +
@@ -46,4 +38,3 @@ filtered_data %>%
 
 # 6. EXPLORATION
 unique(all_data$`County Name`)
-
