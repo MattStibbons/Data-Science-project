@@ -1,2 +1,3 @@
-# Replication-project
-ECON62020 Replication project
+# Main-project
+ECON62020 project folder
+
