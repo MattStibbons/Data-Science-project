@@ -197,3 +197,49 @@ final_dataset %>%
     y = "Lead Concentration (log scale)"
   ) +
   theme_minimal()
+
+
+# Plotting Lead Concentration at US Airports on a map
+
+library(ggplot2)
+library(dplyr)
+library(maps)
+
+# Get US map polygons
+us_map <- map_data("state")
+
+# Aggregate your data (so points aren't overplotted)
+plot_data <- final_dataset %>%
+  group_by(latitude, longitude) %>%
+  summarise(mean_lead = mean(`Arithmetic Mean`, na.rm = TRUE), .groups = "drop")
+
+ggplot() +
+  # Draw US map
+  geom_polygon(
+    data = us_map,
+    aes(x = long, y = lat, group = group),
+    fill = "gray95",
+    color = "white"
+  ) +
+  
+  # Overlay your data
+  geom_point(
+    data = plot_data,
+    aes(x = longitude, y = latitude, color = mean_lead),
+    size = 2,
+    alpha = 0.8
+  ) +
+  
+  scale_color_viridis_c(trans = "log10") +
+  
+  coord_fixed(1.3) +
+  
+  labs(
+    title = "Lead Concentration at US Airports (2000–2025)",
+    subtitle = "Mapped across monitoring locations",
+    x = "",
+    y = "",
+    color = "Lead (log scale)"
+  ) +
+  
+  theme_minimal()
