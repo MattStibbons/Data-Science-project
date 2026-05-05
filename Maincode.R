@@ -1,174 +1,199 @@
-# 1. LOAD LIBRARIES 
-library(readr)
-library(dplyr)
-library(ggplot2)
-library(purrr)
+###########################################################################
+# LEAD & WEATHER SPATIAL-TEMPORAL MERGE (2000-2025)
+# Methodology: NCEP Reanalysis 1 Sigma 995 Mapping
+###########################################################################
 
-# 2. DEFINE YEARS (Have data downloaded since 2000 but RHV starts in 2012)
-years <- 2012:2025
+# 1. LOAD LIBRARIES
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(readr, dplyr, ggplot2, purrr, ncdf4, tibble, lubridate)
 
-# 3. IMPORT & COMBINE DATA
-all_data <- map_dfr(years, function(y) {
-  read_csv(
-    paste0("raw data/daily_LEAD_", y, ".csv"),
-    col_types = cols(`Method Code` = col_character())
-  )
+# 2. CONFIGURATION
+years <- 2000:2025
+raw_data_folder <- "raw data/" # Ensure this folder contains your .nc and .csv files
+
+# 3. IMPORT & CLEAN LEAD DATA
+all_lead_data <- map_dfr(years, function(y) {
+  file_path <- paste0(raw_data_folder, "daily_LEAD_", y, ".csv")
+  if (file.exists(file_path)) {
+    read_csv(file_path, col_types = cols(`Method Code` = col_character()))
+  } else {
+    return(NULL)
+  }
 })
 
-# 4. FILTERING & DATA CLEANING
-filtered_data <- all_data %>%
+# Filter for all airports (Treatment + Controls)
+lead_base <- all_lead_data %>%
   filter(grepl("airport", `Local Site Name`, ignore.case = TRUE)) %>%
   filter(`Arithmetic Mean` > 0) %>%
-  mutate(`Date Local` = as.Date(`Date Local`))
+  mutate(date = as.Date(`Date Local`)) %>%
+  rename(latitude = Latitude, longitude = Longitude)
 
-# 5. VISUALIZATION - Monthly Trends
-filtered_data %>%
-  mutate(month = format(`Date Local`, "%Y-%m")) %>%
-  group_by(`Local Site Name`, month) %>%
-  summarise(mean_value = mean(`Arithmetic Mean`, na.rm = TRUE), .groups = "drop") %>%
-  ggplot(aes(x = as.Date(paste0(month, "-01")), y = mean_value, color = `Local Site Name`)) +
-  geom_line(alpha = 0.7) +
-  scale_y_log10() +
-  labs(
-    title = "Monthly Log Arithmetic Mean (Airport Sites, 2000–2025)",
-    x = "Month",
-    y = "Arithmetic Mean (log scale)"
-  ) +
-  theme_minimal()
+# 4. WEATHER EXTRACTION LOOP
+final_list <- list()
 
-# 6. EXPLORATION
-unique(all_data$`County Name`)
-
-
-####### WEATHER DATA WORK ###########
-library(ncdf4)
-library(tidyr)
-library(lubridate)
-library(doParallel)
-library(foreach)
-
-
-process_weather_year <- function(year, data_path = "raw data/") {
+for (z in years) {
+  cat("\014") # Clear console
+  print(paste("EXTRACTING WEATHER FOR YEAR:", z))
   
-  # ---- FILE PATHS ----
-  uwnd_file <- paste0(data_path, "uwnd.sig995.", year, ".nc")
-  vwnd_file <- paste0(data_path, "vwnd.sig995.", year, ".nc")
-  air_file  <- paste0(data_path, "air.sig995.", year, ".nc")
-  rhum_file <- paste0(data_path, "rhum.sig995.", year, ".nc")
-  pres_file <- paste0(data_path, "pres.sfc.", year, ".nc")
-  prw_file  <- paste0(data_path, "pr_wtr.eatm.", year, ".nc")
+  # Filter observations for current year
+  obs_year <- lead_base %>% filter(format(date, "%Y") == as.character(z))
+  if(nrow(obs_year) == 0) next
   
-  # ---- LOAD ----
-  uwnd_nc <- nc_open(uwnd_file)
-  vwnd_nc <- nc_open(vwnd_file)
-  air_nc  <- nc_open(air_file)
-  rhum_nc <- nc_open(rhum_file)
-  pres_nc <- nc_open(pres_file)
-  prw_nc  <- nc_open(prw_file)
+  # Prepare NC coordinate mapping
+  # NCEP Longitude is 0-360; Time index is Day of Year
+  nc_ref <- nc_open(paste0(raw_data_folder, 'air.sig995.', z, '.nc'))
+  lon_vals <- ncvar_get(nc_ref, "lon") 
+  lat_vals <- ncvar_get(nc_ref, "lat")
+  nc_close(nc_ref)
   
-  # ---- EXTRACT VARIABLES ----
-  uwnd <- ncvar_get(uwnd_nc, "uwnd")
-  vwnd <- ncvar_get(vwnd_nc, "vwnd")
-  air  <- ncvar_get(air_nc, "air")
-  rhum <- ncvar_get(rhum_nc, "rhum")
-  prw  <- ncvar_get(prw_nc, "pr_wtr")
-  
-  time_dim <- ncvar_get(pres_nc, "time")
-  n_time <- length(time_dim)
-  
-  pres_list <- vector("list", n_time)
-  
-  for (t in 1:n_time) {
-    pres_list[[t]] <- ncvar_get(
-      pres_nc,
-      "pres",
-      start = c(1, 1, t),
-      count = c(-1, -1, 1)
+  obs_year <- obs_year %>%
+    mutate(
+      lon_360 = ifelse(longitude < 0, longitude + 360, longitude),
+      day_idx = as.numeric(format(date, "%j"))
     )
+  
+  # Find nearest grid indices (Saves us from the "North Pole" default error)
+  lat_idx <- map_int(obs_year$latitude, ~which.min(abs(lat_vals - .x)))
+  lon_idx <- map_int(obs_year$lon_360, ~which.min(abs(lon_vals - .x)))
+  
+  # Surgical Extraction Function
+  pull_weather <- function(var_name, file_prefix) {
+    f_path <- paste0(raw_data_folder, file_prefix, ".", z, ".nc")
+    if(!file.exists(f_path)) return(rep(NA, nrow(obs_year)))
+    
+    nc <- nc_open(f_path)
+    vals <- map_dbl(1:nrow(obs_year), function(i) {
+      ncvar_get(nc, var_name, 
+                start = c(lon_idx[i], lat_idx[i], obs_year$day_idx[i]), 
+                count = c(1, 1, 1))
+    })
+    nc_close(nc)
+    return(vals)
   }
   
-  pres <- simplify2array(pres_list)
-  # ---- TIME ----
-  time_raw <- ncvar_get(uwnd_nc, "time")
-  time_units <- ncatt_get(uwnd_nc, "time", "units")$value
+  # Map variables to dataframe
+  obs_year$temp_k <- pull_weather("air", "air.sig995")
+  obs_year$uwnd   <- pull_weather("uwnd", "uwnd.sig995")
+  obs_year$vwnd   <- pull_weather("vwnd", "vwnd.sig995")
+  obs_year$rhum   <- pull_weather("rhum", "rhum.sig995")
+  obs_year$pres   <- pull_weather("pres", "pres.sfc") / 1000 # Pa to kPa
   
-  # Extract origin date (e.g. "days since 1800-01-01")
-  origin <- sub(".*since ", "", time_units)
-  
-  # Convert to Date
-  time <- as.Date(time_raw, origin = origin)
-  
-  # ---- LAT/LON ----
-  lon <- ncvar_get(uwnd_nc, "lon")
-  lat <- ncvar_get(uwnd_nc, "lat")
-  
-  # ---- CLOSE FILES ----
-  nc_close(uwnd_nc); nc_close(vwnd_nc); nc_close(air_nc)
-  nc_close(rhum_nc); nc_close(pres_nc); nc_close(prw_nc)
-  
-  # ---- BUILD GRID ----
-  grid <- expand.grid(lon = lon, lat = lat, time = time)
-  
-  # ---- FLATTEN ARRAYS ----
-  grid$uwnd <- as.vector(uwnd)
-  grid$vwnd <- as.vector(vwnd)
-  grid$air_temp <- as.vector(air) - 273.15   # Kelvin → Celsius
-  grid$rhum <- as.vector(rhum)
-  grid$pres <- as.vector(pres) / 1000        # Pa → kPa
-  grid$pr_wtr <- as.vector(prw)
-  
-  # ---- DERIVED VARIABLES ----
-  grid <- grid %>%
+  # Calculate Physics
+  obs_year <- obs_year %>%
     mutate(
+      air_temp = temp_k - 273.15,
       wind_speed = sqrt(uwnd^2 + vwnd^2),
-      date = as.Date(time)
+      wind_dir = (atan2(-uwnd, -vwnd) * 180 / pi + 360) %% 360
     )
   
-  # ---- FIX LONGITUDE (0–360 → -180–180) ----
-  grid <- grid %>%
-    mutate(lon = ifelse(lon > 180, lon - 360, lon))
-  
-  return(grid)
-}
-### BUILD FULL WEATHER DATA SET #####
-weather_data <- map_dfr(years, process_weather_year)
-
-### PREP AIRPORT MONITOR DATA
-airport_data <- filtered_data %>%
-  mutate(
-    lat = Latitude,
-    lon = Longitude,
-    date = as.Date(`Date Local`)
-  ) %>%
-  select(`Local Site Name`, lat, lon, date, `Arithmetic Mean`)
-
-#### MATCH AIPORT TO NEAREST WEATHER
-
-# Get unique weather grid
-weather_coords <- weather_data %>%
-  distinct(lat, lon)
-
-# Function to find nearest grid point
-find_nearest <- function(lat, lon, weather_coords) {
-  dists <- (weather_coords$lat - lat)^2 + (weather_coords$lon - lon)^2
-  weather_coords[which.min(dists), ]
+  final_list[[as.character(z)]] <- obs_year
 }
 
-# Apply to airports
-airport_with_grid <- airport_data %>%
-  rowwise() %>%
-  mutate(
-    nearest = list(find_nearest(lat, lon, weather_coords))
-  ) %>%
-  unnest(nearest)
+# 5. FINAL MERGE AND SAVE
+final_dataset <- bind_rows(final_list)
+saveRDS(final_dataset, "final_analysis_data.rds")
+write_csv(final_dataset, "airport_lead_weather_2000_2025.csv")
 
-### MERGE WEATHER ONTO AIRPORTS ### 
+###########################################################################
+# DIAGNOSTIC SUITE: CHECK IF IT WORKED
+###########################################################################
 
-final_data <- airport_with_grid %>%
-  left_join(
-    weather_data,
-    by = c("lat" = "lat", "lon" = "lon", "date" = "date")
-  )
+cat("\n--- RUNNING DIAGNOSTICS ---\n")
 
 
+temp_summary <- summary(final_dataset$air_temp)
+print("Temperature Distribution (Celsius):")
+print(temp_summary)
 
+if(temp_summary["Mean"] < 0) {
+  warning("CRITICAL: Average temperature is negative. Mapping likely failed!")
+} else {
+  print("SUCCESS: Average temperature is positive/realistic.")
+}
+
+# 2. Visual Check: Temperature vs. Latitude
+# Purpose: Hotter airports should be at lower latitudes. 
+diag_plot1 <- ggplot(final_dataset, aes(x = latitude, y = air_temp)) +
+  geom_point(alpha = 0.2, color = "steelblue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "Diagnostic 1: Temperature vs Latitude",
+       subtitle = "Expected: Negative slope (Colder as you move North)") +
+  theme_minimal()
+print(diag_plot1)
+
+# 3. Visual Check: Seasonal Swing (At Reid Hillview)
+# Purpose: Check if summer is hotter than winter.
+sample_airport <- final_dataset$`Local Site Name`[1]
+diag_plot2 <- final_dataset %>%
+  filter(`Local Site Name` == "Reid Hillview Airport", year(date) == 2018) %>%
+  ggplot(aes(x = date, y = air_temp)) +
+  geom_line() +
+  labs(title = paste("Diagnostic 2: Seasonal Swing at", sample_airport),
+       subtitle = "Expected: A clear 'wave' pattern peaking in July/Aug") +
+  theme_minimal()
+print(diag_plot2)
+
+# 4. Wind Rose distribution
+diag_plot3 <- ggplot(final_dataset, aes(x = wind_dir)) +
+  geom_histogram(binwidth = 30, fill = "darkgreen", color = "white") +
+  coord_polar(start = 0) +
+  labs(title = "Diagnostic 3: Wind Direction (0-360)",
+       subtitle = "Ensure directions are spread across the circle") +
+  theme_minimal()
+print(diag_plot3)
+
+cat("\n--- DIAGNOSTICS COMPLETE ---\n")
+
+###########################################################################
+# LEAD TREND VISUALIZATIONS (2000-2025)
+###########################################################################
+
+# 1. Monthly Trends - Log Scale
+# This helps identify seasonal spikes in lead levels across all monitored airports
+final_dataset %>%
+  mutate(month = format(date, "%Y-%m")) %>%
+  group_by(`Local Site Name`, month) %>%
+  summarise(mean_lead = mean(`Arithmetic Mean`, na.rm = TRUE), .groups = "drop") %>%
+  ggplot(aes(x = as.Date(paste0(month, "-01")), y = mean_lead, color = `Local Site Name`)) +
+  geom_line(alpha = 0.6) +
+  scale_y_log10() +
+  labs(
+    title = "Monthly Log Arithmetic Mean Lead (2000–2025)",
+    subtitle = "Aggregated across all airport monitor sites",
+    x = "Timeline",
+    y = "Lead Concentration (log scale)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 7))
+
+# 2. Yearly Trends - Long-term Comparison
+# Useful for the Difference-in-Differences visual baseline
+final_dataset %>%
+  mutate(year = as.numeric(format(date, "%Y"))) %>%
+  group_by(`Local Site Name`, year) %>%
+  summarise(mean_lead = mean(`Arithmetic Mean`, na.rm = TRUE), .groups = "drop") %>%
+  ggplot(aes(x = year, y = mean_lead, color = `Local Site Name`)) +
+  geom_line(size = 1, alpha = 0.8) +
+  scale_y_log10() +
+  labs(
+    title = "Yearly Log Arithmetic Mean Lead (2000–2025)",
+    x = "Year",
+    y = "Lead Concentration (log scale)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none") # Hidden due to high number of sites
+
+# 3. New Diagnostic: Lead vs Wind Speed
+# Since you have the weather data now, let's see if wind actually dilutes lead
+final_dataset %>%
+  ggplot(aes(x = wind_speed, y = `Arithmetic Mean`)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method = "lm", color = "red") +
+  scale_y_log10() +
+  labs(
+    title = "Lead Concentration vs. Wind Speed",
+    subtitle = "Testing atmospheric dilution hypothesis",
+    x = "Wind Speed (m/s)",
+    y = "Lead Concentration (log scale)"
+  ) +
+  theme_minimal()
