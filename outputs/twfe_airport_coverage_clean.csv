@@ -1,0 +1,15 @@
+airport_id,airport_name,treated,n_pre_months,n_post_months,min_month,max_month
+20928,Reid-Hillview Airport of Santa Clara County,TRUE,109,36,2012-02-01,2024-12-01
+19281,Anoka County-Blaine (Janes Field) Airport,FALSE,120,42,2012-01-01,2025-06-01
+3474,Calexico International Airport,FALSE,244,37,2000-01-01,2025-01-01
+18125,Carroll's Airpark,FALSE,264,45,2000-01-01,2025-09-01
+19539,Compton Woodley Airport,FALSE,155,42,2008-11-01,2025-06-01
+20932,Flabob Airport,FALSE,261,42,2000-01-01,2025-06-01
+13222,Harley Airport,FALSE,184,33,2000-01-01,2024-09-01
+3644,Long Beach International Airport,FALSE,261,4,2000-01-01,2022-04-01
+19552,McClellan-Palomar Airport,FALSE,97,39,2012-03-01,2025-03-01
+3906,Saint Paul Downtown Holman Field,FALSE,156,42,2009-01-01,2025-06-01
+3867,San Bernardino International Airport,FALSE,261,42,2000-01-01,2025-06-01
+21063,South St Paul Municipal Airport/Richard E Fleming Field,FALSE,193,13,2005-12-01,2025-06-01
+325427,Walnut Grove Airport,FALSE,120,34,2012-01-01,2024-10-01
+3467,Yeager Airport,FALSE,71,24,2016-02-01,2023-12-01

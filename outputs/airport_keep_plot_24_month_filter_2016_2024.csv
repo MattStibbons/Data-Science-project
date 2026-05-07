@@ -1,0 +1,63 @@
+distance_band,airport_id,airport_name,n_months,avg_lead
+0-1 km,19281,Anoka County-Blaine (Janes Field) Airport,108,0.005211728395061729
+0-1 km,19552,McClellan-Palomar Airport,108,0.01262844382983272
+0-1 km,19672,Phoenix Deer Valley Airport,48,0.031204068963443965
+0-1 km,20928,Reid-Hillview Airport of Santa Clara County,98,0.04059404761904762
+1-3 km,13222,Harley Airport,57,0.0047924131161236425
+1-3 km,20468,Macon Downtown Airport,36,0.0017226851851851852
+1-3 km,20932,Flabob Airport,105,0.005129034656084656
+1-3 km,21063,South St Paul Municipal Airport/Richard E Fleming Field,84,0.0020726190476190475
+1-3 km,325427,Walnut Grove Airport,106,0.026684250524109013
+1-3 km,3388,Wilkes-Barre/Scranton International Airport,33,0.006865656565656566
+1-3 km,3474,Calexico International Airport,91,0.013915604395604396
+1-3 km,3632,Los Angeles International Airport,65,0.0022523076923076923
+1-3 km,3906,Saint Paul Downtown Holman Field,59,0.01975
+1-3 km,5447,Kalaeloa Airport,36,9.23046937630271e-4
+3-5 km,10151,Wipline Airport,84,0.0020726190476190475
+3-5 km,13222,Harley Airport,35,0.0038293333333333335
+3-5 km,18125,Carroll's Airpark,108,0.026035181176847843
+3-5 km,19498,Chico Regional Airport,82,0.002173831300813008
+3-5 km,19539,Compton Woodley Airport,105,0.005745797773654917
+3-5 km,19860,Fremont Municipal Airport,51,0.016141059757236228
+3-5 km,20508,Crystal Airport,108,0.0017549382716049384
+3-5 km,21047,Gillespie Field,89,0.003589838817549492
+3-5 km,22069,Boulder Canyon Airport,108,0.01217717151675485
+3-5 km,24145,Fino Airport,65,0.0017157692307692308
+3-5 km,3401,King County International Airport - Boeing Field,36,0.002309294532627866
+3-5 km,3414,Burke Lakefront Airport,107,0.010511025902965156
+3-5 km,3467,Yeager Airport,95,0.004441754385964912
+3-5 km,351166,McMillin Landingstrip,106,0.011783490566037736
+3-5 km,3521,Newark Liberty International Airport,78,0.002252777777777778
+3-5 km,3524,Fresno Yosemite International Airport,88,0.0036774815115440114
+3-5 km,3575,Gary/Chicago International Airport,107,0.006564250650699249
+3-5 km,3610,Indianapolis International Airport,24,0.012591835016835017
+3-5 km,3644,Long Beach International Airport,73,0.004199315068493151
+3-5 km,3842,Reading Regional Airport (Carl A Spaatz Field),105,0.007787776213826634
+3-5 km,3867,San Bernardino International Airport,105,0.006390793650793651
+3-5 km,3883,Norman Y. Mineta San Jose International Airport,96,0.0029937487599206347
+3-5 km,3891,Salina Municipal Airport,107,0.03822470769106283
+3-5 km,3906,Saint Paul Downtown Holman Field,108,0.002139917695473251
+3-5 km,516637,Indian Springs Airport,106,0.026684250524109013
+3-5 km,6889,Randall Airport,24,0.010337669424801778
+3-5 km,7897,Beltzville Airport,30,0.008781111111111111
+0-4 km,13222,Harley Airport,92,0.004426024068322982
+0-4 km,18125,Carroll's Airpark,108,0.026035181176847843
+0-4 km,19281,Anoka County-Blaine (Janes Field) Airport,108,0.005211728395061729
+0-4 km,19539,Compton Woodley Airport,105,0.005745797773654917
+0-4 km,19552,McClellan-Palomar Airport,108,0.01262844382983272
+0-4 km,19672,Phoenix Deer Valley Airport,48,0.031204068963443965
+0-4 km,20468,Macon Downtown Airport,36,0.0017226851851851852
+0-4 km,20928,Reid-Hillview Airport of Santa Clara County,98,0.04059404761904762
+0-4 km,20932,Flabob Airport,105,0.005129034656084656
+0-4 km,21063,South St Paul Municipal Airport/Richard E Fleming Field,84,0.0020726190476190475
+0-4 km,24145,Fino Airport,65,0.0017157692307692308
+0-4 km,325427,Walnut Grove Airport,106,0.026684250524109013
+0-4 km,3388,Wilkes-Barre/Scranton International Airport,33,0.006865656565656566
+0-4 km,3467,Yeager Airport,95,0.004441754385964912
+0-4 km,3474,Calexico International Airport,91,0.013915604395604396
+0-4 km,3632,Los Angeles International Airport,65,0.0022523076923076923
+0-4 km,3644,Long Beach International Airport,73,0.004199315068493151
+0-4 km,3867,San Bernardino International Airport,105,0.006390793650793651
+0-4 km,3883,Norman Y. Mineta San Jose International Airport,96,0.0029937487599206347
+0-4 km,3906,Saint Paul Downtown Holman Field,108,0.006976928167451043
+0-4 km,5447,Kalaeloa Airport,36,9.23046937630271e-4

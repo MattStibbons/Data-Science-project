@@ -1,0 +1,36 @@
+airport_id,airport_name,treated,n_pre_months,n_post_months,min_month,max_month
+20928,Reid-Hillview Airport of Santa Clara County,TRUE,62,36,2016-01-01,2024-12-01
+19281,Anoka County-Blaine (Janes Field) Airport,FALSE,72,36,2016-01-01,2024-12-01
+3649,Bowman Field,FALSE,12,0,2016-01-01,2016-12-01
+3414,Burke Lakefront Airport,FALSE,8,0,2016-01-01,2016-08-01
+3474,Calexico International Airport,FALSE,55,36,2016-01-01,2024-12-01
+18125,Carroll's Airpark,FALSE,72,36,2016-01-01,2024-12-01
+3689,Charles B. Wheeler Downtown Airport,FALSE,5,0,2016-02-01,2016-06-01
+19539,Compton Woodley Airport,FALSE,69,36,2016-01-01,2024-12-01
+3479,Dallas Love Field,FALSE,12,0,2016-01-01,2016-12-01
+19648,Dupage Airport,FALSE,12,0,2016-01-01,2016-12-01
+25575,Falwell Airport,FALSE,21,0,2016-01-01,2017-09-01
+24145,Fino Airport,FALSE,65,0,2016-01-01,2021-06-01
+20932,Flabob Airport,FALSE,69,36,2016-01-01,2024-12-01
+22390,Flowood Industrial Airport,FALSE,6,0,2016-01-01,2016-06-01
+7488,Flying Acres Airport,FALSE,6,0,2016-01-01,2016-07-01
+21047,Gillespie Field,FALSE,12,0,2016-01-01,2016-12-01
+13222,Harley Airport,FALSE,59,33,2016-01-01,2024-09-01
+20058,Hawkins Field,FALSE,6,0,2016-01-01,2016-06-01
+5447,Kalaeloa Airport,FALSE,36,0,2016-01-01,2018-12-01
+3644,Long Beach International Airport,FALSE,69,4,2016-01-01,2022-04-01
+3632,Los Angeles International Airport,FALSE,65,0,2016-01-01,2021-09-01
+20468,Macon Downtown Airport,FALSE,36,0,2016-01-01,2018-12-01
+19552,McClellan-Palomar Airport,FALSE,72,36,2016-01-01,2024-12-01
+20509,Miami Municipal Airport,FALSE,0,13,2023-05-01,2024-05-01
+3883,Norman Y. Mineta San Jose International Airport,FALSE,61,35,2016-01-01,2024-12-01
+19672,Phoenix Deer Valley Airport,FALSE,48,0,2016-01-01,2019-12-01
+3842,Reading Regional Airport (Carl A Spaatz Field),FALSE,18,0,2016-01-01,2017-06-01
+3906,Saint Paul Downtown Holman Field,FALSE,72,36,2016-01-01,2024-12-01
+3867,San Bernardino International Airport,FALSE,69,36,2016-01-01,2024-12-01
+21105,San Carlos Airport,FALSE,15,0,2016-01-01,2017-03-01
+21063,South St Paul Municipal Airport/Richard E Fleming Field,FALSE,72,12,2016-01-01,2022-12-01
+8115,Spud View Airport,FALSE,15,0,2016-01-01,2017-03-01
+325427,Walnut Grove Airport,FALSE,72,34,2016-01-01,2024-10-01
+3388,Wilkes-Barre/Scranton International Airport,FALSE,33,0,2016-01-01,2018-09-01
+3467,Yeager Airport,FALSE,71,24,2016-02-01,2023-12-01
